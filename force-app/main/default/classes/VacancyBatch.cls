@@ -8,6 +8,8 @@ Database.Stateful {
   private String standardQuery = 'Select id from Vacancy__c where status__c = \'closed\' ';
   Exception[] errors = new Exception[0];  
   private List<CustomException> customExceptions = new List<CustomException>();
+  private String stackTraceString;
+
 
   public VacancyBatch(String query) {
     this.batchQuery = query; 
@@ -69,16 +71,22 @@ Database.Stateful {
       }
       try {
       delete vacancies;     
-      delete vacancies;     
-      delete vacancies;     
-      delete vacancies;     
+      // delete vacancies;     
+      // delete vacancies;     
+      // delete vacancies;     
 
 
     } catch(Exception e) {
+      AsyncapexJob aJ = [SELECT Id, ApexClassID FROM AsyncapexJob WHERE Id =: context.getJobId()];
+      ApexClass aC = [SELECT Id, Name FROM ApexClass WHERE Id =: aJ.ApexClassID];
       CustomException customException = new CustomException();
       customException.rec = vacancies;
       customException.msg = e.getMessage();
-      customExceptions.add(customException);
+      customException.createStackTraceString();
+      customException.apexClass = aC.Name;
+      customExceptions.add(customException);      
+      System.debug('Stack Trace'+ customException.getStackTraceString());   
+
       throw e;
   }
     }
@@ -91,8 +99,10 @@ Database.Stateful {
       // System.debug('ERRORS '+ customExceptions[0].getRec());   
       //  System.debug('batch '+ context.getJobId());   
       //Add for!!!
-   
-      logging.log(context,customExceptions[0].getMsg(),customExceptions[0].getRec(),'ERROR');
+      for( CustomException ex:customExceptions){
+      logging.log(context,ex,'ERROR');
+  }
+  
       }        
         else {
           System.debug('All good');
@@ -100,10 +110,15 @@ Database.Stateful {
         }
   }
   public class CustomException extends Exception{
+    public String stackTrackString;
     public String msg;      
     public List<Vacancy__c> rec;
+    public String apexClass;
     public  String getMsg(){
       return this.msg;
+    }
+    public String getAC(){
+      return this.apexClass;
     }
     public   String getRec(){
       List<String> lstNames  = new List<String>();
@@ -113,5 +128,13 @@ Database.Stateful {
 String names = string.join(lstNames,',');
 return names;
     }
+    private void createStackTraceString() {
+      stackTrackString = new DmlException().getStackTraceString();
+      // stackTrackString = stackTrackString.replaceFirst('(?m)(.*\\n){3}?', '');
+  }
+
+  public override String getStackTraceString() {
+      return stackTrackString;
+  }
   } 
 }

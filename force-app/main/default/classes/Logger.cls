@@ -9,13 +9,15 @@ public with sharing class Logger {
             Database.SaveResult sr = EventBus.publish(logEvent);
                  
     }
-    public  void log(Database.BatchableContext context, String msg, String rec , String LogLevel) {
+    public  void log(Database.BatchableContext context, VacancyBatch.CustomException ex, String LogLevel) {
         Logging__e  logEvent = new Logging__e(
             LogLevel__c =LogLevel,
-            Message__c = msg,
-            Record__c = rec,
+            Message__c = ex.getMsg(),
+            Record__c = ex.getRec(),
             User_Name__c = userinfo.getName(),
-            Context_Id__c = context.getJobId());
+            Context_Id__c = context.getJobId(),
+            Context_Name__c = ex.getAC(), 
+            Stack_trace_String__c = ex.getStackTraceString());
             Database.SaveResult sr = EventBus.publish(logEvent);
             // System.debug('batch '+ context.getJobId());   
 
